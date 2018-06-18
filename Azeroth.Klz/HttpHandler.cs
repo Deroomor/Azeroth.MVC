@@ -13,7 +13,7 @@ namespace Azeroth.Klz
         public const string RoutDataValueFlag = "@@dictUrlSegment@@";
 
         static List<Tuple<string, System.RuntimeTypeHandle>> dictController =
-           System.AppDomain.CurrentDomain.GetAssemblies().Select(x => x.GetTypes().Where(y => y.IsClass && y.IsPublic && y.IsSubclassOf(controllerMETA))).SelectMany(x => x.Select(a=>Tuple.Create(a.FullName.ToLower(),a.TypeHandle))).ToList();
+           System.AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.GetTypes().Where(y => y.IsClass && y.IsPublic && y.IsSubclassOf(controllerMETA))).Select(x => Tuple.Create(x.FullName.ToLower(),x.TypeHandle)).ToList();
 
   
         public bool IsReusable { set; get; }
