@@ -12,24 +12,10 @@ namespace Azeroth.Klz
         static System.Type controllerMETA = typeof(Controller);
         public const string RoutDataValueFlag = "@@dictUrlSegment@@";
 
+        static List<Tuple<string, System.RuntimeTypeHandle>> dictController =
+           System.AppDomain.CurrentDomain.GetAssemblies().Select(x => x.GetTypes().Where(y => y.IsClass && y.IsPublic && y.IsSubclassOf(controllerMETA))).SelectMany(x => x.Select(a=>Tuple.Create(a.FullName.ToLower(),a.TypeHandle))).ToList();
 
-        static Dictionary<string, System.RuntimeTypeHandle> dictController =
-            ConcatDict(System.AppDomain.CurrentDomain.GetAssemblies().ToDictionary(x => x.FullName,
-            x => x.GetTypes().Where(y => y.IsClass && y.IsPublic && y.IsSubclassOf(controllerMETA)).ToDictionary(a => a.FullName, a => a.TypeHandle)));
-
-        static Dictionary<string, System.RuntimeTypeHandle> ConcatDict(Dictionary<string, Dictionary<string, System.RuntimeTypeHandle>> kvkv)
-        {
-            var dict = new Dictionary<string, System.RuntimeTypeHandle>();
-            foreach (var kv in kvkv)
-            {
-                foreach (var v in kv.Value)
-                {
-                    dict.Add(v.Key.ToLower(), v.Value);
-                }
-            }
-            return dict;
-        }
-            
+  
         public bool IsReusable { set; get; }
 
         Dictionary<string, string> dictUrlSegment;
@@ -58,14 +44,14 @@ namespace Azeroth.Klz
         public void ProcessRequest(System.Web.HttpContext context)
         {
             string controllerName = dictUrlSegment[controllerFlag];
-            var controllers = dictController.Where(x => x.Key.IndexOf(controllerName) >= 0).ToDictionary(kv => kv.Key, kv => kv.Value);
+            var controllers = dictController.Where(x=>x.Item1.IndexOf(controllerName)>=0).ToList();
             System.RuntimeTypeHandle controllerTH;
             if (controllers.Count < 1)
                 throw new ArgumentException("未找到指定的控制器" + controllerName);
             else if (controllers.Count == 1)
-                controllerTH = controllers.First().Value;
+                controllerTH = controllers[0].Item2;
             else
-                controllerTH = controllers[controllers.ToDictionary(kv => kv.Key, kv => dictUrlSegment.Values.Count(a => kv.Key.IndexOf(a) >= 0)).OrderBy(kv => kv.Value).First().Key];
+                controllerTH = controllers.OrderByDescending(x => dictUrlSegment.Values.Count(a => x.Item1.IndexOf(a) >= 0)).First().Item2;
             Controller controllerInstance = CreateController(controllerTH);
             var method = System.Type.GetTypeFromHandle(controllerTH).GetMethod(this.dictUrlSegment[actionFlag], System.Reflection.BindingFlags.IgnoreCase| System.Reflection.BindingFlags.Instance| System.Reflection.BindingFlags.Public);
             if (method == null)
